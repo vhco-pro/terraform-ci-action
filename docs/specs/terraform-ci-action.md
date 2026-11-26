@@ -1,7 +1,7 @@
 ---
-status: draft
-status_description: "Owner-approved design captured for independent specification review."
-issue: null
+status: planned
+status_description: "The owner accepted the reviewed specification."
+issue: https://github.com/vhco-pro/terraform-ci-action/issues/1
 goal: "Consumers can run the same read-only Terraform or OpenTofu checks locally and in GitHub Actions."
 covers:
   - action.yml
@@ -76,6 +76,7 @@ None.
 | 2026-11-26 | R-1 | spec | `3c8f33420365fb05c5795c7dc22404434aa480f3` | unknown | procedural | Child tool isolation and release recovery require explicit proof. |
 | 2026-11-26 | R-2 | spec | `ccb3e91a5cab5f4a0ddec8371a85e63ff6d7d1ba` | unknown | procedural | Add a prerelease-tag refusal case. |
 | 2026-11-26 | R-3 | spec | `7fde52a105f0fa1401f5c8bf35ad75ce162183a2` | unknown | procedural | No findings. |
+| 2026-11-26 | R-3 | spec | `7fde52a105f0fa1401f5c8bf35ad75ce162183a2` | n/a | n/a | accepted by owner |
 
 ### R-1
 
