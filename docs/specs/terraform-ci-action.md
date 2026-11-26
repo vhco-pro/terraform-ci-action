@@ -72,6 +72,44 @@ None.
 
 | Date | Review | Kind | Commit | Model | Isolation | Outcome |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-11-26 | R-1 | spec | `3c8f33420365fb05c5795c7dc22404434aa480f3` | unknown | procedural | Child tool isolation and release recovery require explicit proof. |
+
+### R-1
+
+FINDING: F-01
+KIND: factual
+SEVERITY: blocking
+WHERE: Context owner summary, Scope, Design lines 38-43, Acceptance Criteria AC-01 and AC-03, Test Plan AC-01 and AC-03
+EVIDENCE: Design lets the checkout select provider and TFLint plugin code. It constrains input paths but does not constrain the environment inherited by that code when the shell entry point runs locally. Backend-free initialization does not prevent a provider or plugin process from reading credentials already exported by the caller. The pinned coding convention at lines 95-97 requires an explicit allowlisted environment for processes running user-supplied code.
+PROPOSAL: Specify a minimal child environment and isolated tool configuration for both entry points. Add a local fixture that proves a credential-shaped sentinel in the caller environment is absent from the child, and state which checkouts users may safely verify locally.
+
+FINDING: F-02
+KIND: factual
+SEVERITY: should-fix
+WHERE: Context owner summary, Design line 39, Acceptance Criteria AC-01, Test Plan AC-01
+EVIDENCE: Design places module initialization in temporary storage but says nothing equivalent for deployable roots. Terraform's CLI environment reference says initialized working-directory data goes into .terraform unless TF_DATA_DIR is set. The AC-01 proof compares tracked inputs only, so generated files in the caller checkout could pass the proof.
+PROPOSAL: Put initialization data for both root kinds in run-owned scratch space while preserving relative module paths. Verify that a provider-using fixture leaves no new files in the caller checkout, including on failure.
+
+FINDING: F-03
+KIND: factual
+SEVERITY: should-fix
+WHERE: Design line 43, Acceptance Criteria AC-05, Test Plan AC-05
+EVIDENCE: Pinned GitHub Actions conventions at lines 117-119 require dispatch of an existing exact tag and validation of that tag. The selected shared workflow accepts only runs-on and dry-run and derives its tag from GitVersion. The design requires safe retries but leaves exact-tag validation, ref selection and recovery outside the release proof.
+PROPOSAL: Specify which events can start a release and how the caller validates an exact recovery tag and its commit before any write. Prove that an authorized existing tag can recover and that an invalid or disallowed ref refuses.
+
+FINDING: F-04
+KIND: factual
+SEVERITY: should-fix
+WHERE: Context owner summary, Design line 42, Acceptance Criteria AC-04, Test Plan AC-04
+EVIDENCE: The design limits the hook to formatting, but AC-04 says the full command and hook share the check behavior. The proof does not name the violation used in the staged and unstaged cases. An implementer could duplicate formatter invocation or interpret AC-04 as requiring full scans during a commit.
+PROPOSAL: State that the hook shares the full check's formatter invocation and verdict for the staged inputs. Use a formatting-only violation in both index and worktree cases.
+
+FINDING: F-05
+KIND: factual
+SEVERITY: should-fix
+WHERE: Acceptance Criteria AC-01 and AC-03, Test Plan AC-01 and AC-03
+EVIDENCE: AC-01 requires a missing-dependency refusal, and AC-03 requires a missing-pin refusal. The AC-01 row lists formatting, validation and lockfile fixtures, while AC-03 lists omitted engine, empty scope, escaping paths and digest cases. Neither row requires a missing dependency or an exact version with no verified pin. An omitted engine or a corrupt checksum does not exercise either path.
+PROPOSAL: Add a fixture with an unavailable required dependency and a separate input with an exact unsupported engine version. Require each to fail at its intended check.
 
 ## Sources
 
