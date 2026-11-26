@@ -59,7 +59,7 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 | AC-02 | Run `tests/check.sh` on paired lint and scanner fixtures. Assert the TFLint diagnostic ID for the selected rule and the Trivy finding ID and source location for the unrestricted ingress fixture. The corrected fixtures exit zero. |
 | AC-03 | Run `tests/setup.sh` for the right and wrong digest and `tests/check.sh` for omitted engine, unsupported exact engine version, empty scope and an out-of-checkout path. A fixture child asserts that an exported synthetic credential sentinel and caller CLI configuration are absent. The callable workflow compares each reported version with the installed CLI. |
 | AC-04 | Run `tests/hook.sh` in a disposable Git repository with differing index and worktree contents. Stage misformatted HCL and correct the working file to prove the hook blocks. Stage formatted HCL and misformat only the working file to prove the hook allows it. Compare the index and source before and after. |
-| AC-05 | Lint workflows and examples with `actionlint`. Test the release gate on synthetic Git refs: default-branch push after passing fixtures and an existing exact stable recovery tag at the tested commit are eligible; PRs, failing fixtures, branches on dispatch, and a tag pointing to another commit cannot publish. Hosted fixture evidence remains separate from local checks. |
+| AC-05 | Lint workflows and examples with `actionlint`. Test the release gate on synthetic Git refs: default-branch push after passing fixtures and an existing exact stable recovery tag at the tested commit are eligible; PRs, failing fixtures, branches on dispatch, a prerelease tag such as `v1.2.3-rc.1` at the tested commit, and a tag pointing to another commit cannot publish. Hosted fixture evidence remains separate from local checks. |
 
 ## Tasks
 
@@ -74,6 +74,7 @@ None.
 | Date | Review | Kind | Commit | Model | Isolation | Outcome |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-11-26 | R-1 | spec | `3c8f33420365fb05c5795c7dc22404434aa480f3` | unknown | procedural | Child tool isolation and release recovery require explicit proof. |
+| 2026-11-26 | R-2 | spec | `ccb3e91a5cab5f4a0ddec8371a85e63ff6d7d1ba` | unknown | procedural | Add a prerelease-tag refusal case. |
 
 ### R-1
 
@@ -111,6 +112,15 @@ SEVERITY: should-fix
 WHERE: Acceptance Criteria AC-01 and AC-03, Test Plan AC-01 and AC-03
 EVIDENCE: AC-01 requires a missing-dependency refusal, and AC-03 requires a missing-pin refusal. The AC-01 row lists formatting, validation and lockfile fixtures, while AC-03 lists omitted engine, empty scope, escaping paths and digest cases. Neither row requires a missing dependency or an exact version with no verified pin. An omitted engine or a corrupt checksum does not exercise either path.
 PROPOSAL: Add a fixture with an unavailable required dependency and a separate input with an exact unsupported engine version. Require each to fail at its intended check.
+
+### R-2
+
+FINDING: F-01
+KIND: factual
+SEVERITY: should-fix
+WHERE: Design line 44, Test Plan AC-05
+EVIDENCE: The revised design permits recovery only for an exact stable version tag. The revised proof rejects branches and tags that point to another commit, but every case could pass if recovery accepted a prerelease tag pointing to the tested commit.
+PROPOSAL: Add a recovery case for a tag such as v1.2.3-rc.1 that points to the tested commit. Require it to refuse publication while the stable tag v1.2.3 remains eligible.
 
 ## Sources
 
