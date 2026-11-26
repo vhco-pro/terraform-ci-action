@@ -108,6 +108,7 @@ None.
 | 2026-11-26 | R-7 | implementation | `be39185bc301c7ab26f889a85097b998663a56b5` | unknown | procedural | Hosted fixtures passed. Worktree snapshots and hook formatting need fixes. |
 | 2026-11-26 | R-8 | implementation | `863b523fb0dc6cf99f71c83e8f80138dd9061c7e` | unknown | procedural | All five criteria met. Tighten the formatter regression’s assertion. |
 | 2026-11-26 | R-9 | implementation | `eb1b4b1f79828eacc2ac0cda024e175174c58d99` | unknown | procedural | All five criteria met. |
+| 2026-11-26 | R-10 | implementation | `6622432a030331c4e0eedc49669e21be26c47ab7` | unknown | procedural | All five criteria met with the new OpenTofu pin and hosted fixture matrix. |
 
 ### R-1
 
@@ -353,6 +354,28 @@ EVIDENCE: At eb1b4b1f79828eacc2ac0cda024e175174c58d99, each local hook suite pas
 CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
 VERDICT: met
 EVIDENCE: All three jobs in GitHub Test run 45858390370 used eb1b4b1f79828eacc2ac0cda024e175174c58d99 and succeeded. Both engine jobs completed the passing composite, observed the intended formatting failure and matched the direct verdicts. Local actionlint and tests/release.sh passed from the exact export. Both publishing jobs depend on the gate after the callable fixture workflow. The pinned shared workflow performs tag creation after that gate.
+
+### R-10
+
+CRITERION: AC-01 A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+VERDICT: met
+EVIDENCE: The local check suites passed from an export of 6622432a030331c4e0eedc49669e21be26c47ab7 on Terraform 1.17.2, OpenTofu 1.13.10 and OpenTofu 1.13.9. Each verified checkout preservation and refused bad formatting, invalid configuration, an unavailable local module and lockfile failures. Both OpenTofu file suites passed, and an independent 1.13.9 run accepted a selected root with an unrelated tracked worktree deletion.
+
+CRITERION: AC-02 The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+VERDICT: met
+EVIDENCE: All three local engine variants accepted the corrected fixtures and blocked terraform_unused_declarations and AWS-0107 at 6622432a030331c4e0eedc49669e21be26c47ab7. Trivy traced the policy finding to policy/main.tf. Both OpenTofu file suites also refused an unused declaration in an OpenTofu-only root.
+
+CRITERION: AC-03 The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
+VERDICT: met
+EVIDENCE: All three engine jobs in GitHub Test run 45871420211 at 6622432a030331c4e0eedc49669e21be26c47ab7 matched their composite outputs against the installed Terraform 1.17.2, OpenTofu 1.13.10 or OpenTofu 1.13.9 binary, with TFLint 0.66.0 and Trivy 0.76.2. OpenTofu's published 1.13.9 SHA256SUMS matched both committed digests. Both Linux x64 archives verified and contained identical executables, and local setup installed 1.13.9 from the verified ZIP and refused a wrong archive before installation. The local suites and direct probes refused omitted or invalid inputs, an unsupported pin, an empty scope and an escaping path. Engine and linter observers confirmed the synthetic caller credential and CLI configuration were absent.
+
+CRITERION: AC-04 The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+VERDICT: met
+EVIDENCE: Local hook fixtures passed at 6622432a030331c4e0eedc49669e21be26c47ab7 for Terraform 1.17.2 and both OpenTofu versions. They refused misformatted staged content, accepted clean staged content despite misformatted working files and preserved the index and source. The Terraform formatter and hook each named the staged mock and query fixtures in the expected refusals.
+
+CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+VERDICT: met
+EVIDENCE: All four jobs in GitHub Test run 45871420211 used 6622432a030331c4e0eedc49669e21be26c47ab7 and succeeded. All three composite variants passed the clean fixture, refused the formatting fixture and matched direct execution. Hosted workflow lint, ShellCheck and release guard fixtures passed, and local actionlint and tests/release.sh also passed. Both publishing jobs depend on the gate after the callable fixture workflow. The pinned shared workflow creates the tag after that gate.
 
 ## Sources
 
