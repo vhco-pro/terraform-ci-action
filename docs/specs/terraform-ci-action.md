@@ -75,6 +75,7 @@ None.
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-11-26 | R-1 | spec | `3c8f33420365fb05c5795c7dc22404434aa480f3` | unknown | procedural | Child tool isolation and release recovery require explicit proof. |
 | 2026-11-26 | R-2 | spec | `ccb3e91a5cab5f4a0ddec8371a85e63ff6d7d1ba` | unknown | procedural | Add a prerelease-tag refusal case. |
+| 2026-11-26 | R-3 | spec | `7fde52a105f0fa1401f5c8bf35ad75ce162183a2` | unknown | procedural | No findings. |
 
 ### R-1
 
@@ -121,6 +122,10 @@ SEVERITY: should-fix
 WHERE: Design line 44, Test Plan AC-05
 EVIDENCE: The revised design permits recovery only for an exact stable version tag. The revised proof rejects branches and tags that point to another commit, but every case could pass if recovery accepted a prerelease tag pointing to the tested commit.
 PROPOSAL: Add a recovery case for a tag such as v1.2.3-rc.1 that points to the tested commit. Require it to refuse publication while the stable tag v1.2.3 remains eligible.
+
+### R-3
+
+NO FINDINGS
 
 ## Sources
 
