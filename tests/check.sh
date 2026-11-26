@@ -143,3 +143,11 @@ mkdir "$scratch/observer"
 } >"$scratch/observer/$engine"
 chmod +x "$scratch/observer/$engine"
 AWS_ACCESS_KEY_ID=synthetic-sentinel TF_CLI_CONFIG_FILE=/fixture/caller.rc PATH="$scratch/observer:$PATH" check
+
+mkdir -p "$scratch/tree/empty-typed/dir.tf"
+printf 'Synthetic metadata\n' > "$scratch/tree/empty-typed/dir.tf/README.md"
+git -C "$scratch/tree" add -- empty-typed/dir.tf/README.md
+refuse 'No Terraform configuration' env \
+  TERRAFORM_CI_WORKING_DIRECTORY=empty-typed TERRAFORM_CI_ROOT_KIND=module \
+  TERRAFORM_CI_WORKSPACE="$scratch/tree" TERRAFORM_CI_ENGINE="$engine" \
+  TERRAFORM_CI_ENGINE_VERSION="$version" "$repo/scripts/check.sh"

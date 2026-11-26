@@ -82,7 +82,8 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 
       Evidence: Each regression failed before the fix. Both engine suites, both hooks, OpenTofu-only HCL/JSON with source precedence, the release guard and actionlint passed after the fix.
 
-- [ ] T7 `scripts/check.sh` and `tests/check.sh` reject roots that contain directories with configuration suffixes but no configuration files. Run both engine suites (AC-01).
+- [x] T7 `scripts/check.sh` and `tests/check.sh` reject roots that contain directories with configuration suffixes but no configuration files. Run both engine suites (AC-01).
+      Evidence: The .tf-named directory fixture first passed an empty root incorrectly. Both native suites reject it after checking that a source is a file.
 
 ## Open Questions
 

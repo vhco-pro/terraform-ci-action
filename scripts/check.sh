@@ -69,7 +69,11 @@ root="$tree/$relative"
 shopt -s nullglob
 sources=("$root"/*.tf "$root"/*.tf.json)
 if [[ $engine == tofu ]]; then sources+=("$root"/*.tofu "$root"/*.tofu.json); fi
-(( ${#sources[@]} > 0 )) || fail 'No Terraform configuration in working-directory.'
+has_sources=false
+for source in "${sources[@]}"; do
+  if [[ -f $source ]]; then has_sources=true; break; fi
+done
+[[ $has_sources == true ]] || fail 'No Terraform configuration in working-directory.'
 
 init_flags=(-backend=false -input=false -no-color)
 if [[ $root_kind == deployable ]]; then
