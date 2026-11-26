@@ -46,14 +46,16 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 
 ## Acceptance Criteria
 
-- [ ] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
-      Evidence: R-7 found that an unrelated deletion aborts a check and an internal OpenTofu symlink fails during source projection.
+- [x] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+      Evidence: R-9 confirmed both native engines, worktree preservation and expected refusals.
 - [x] AC-02: The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
-      Evidence: Both engine runs passed corrected fixtures and refused terraform_unused_declarations and AWS-0107 at the expected stages.
-- [ ] AC-03: The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
-- [ ] AC-04: The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
-      Evidence: R-7 found that the hook skips staged Terraform mock and query formatting.
-- [ ] AC-05: The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+      Evidence: R-9 confirmed both engines' clean cases and the TFLint and Trivy refusal cases.
+- [x] AC-03: The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
+      Evidence: R-9 checked installed versions and output parity in public run 45858390370 and rechecked native setup and input refusals.
+- [x] AC-04: The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+      Evidence: R-9 verified staged parity, index preservation and that the tightened regression fails if either formatter skips the named file.
+- [x] AC-05: The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+      Evidence: R-9 confirmed all three jobs in public run 45858390370 and the native lint and release gate fixtures.
 
 ## Test Plan
 
@@ -106,6 +108,7 @@ None.
 
 | 2026-11-26 | R-7 | implementation | `be39185bc301c7ab26f889a85097b998663a56b5` | unknown | procedural | Hosted fixtures passed. Worktree snapshots and hook formatting need fixes. |
 | 2026-11-26 | R-8 | implementation | `863b523fb0dc6cf99f71c83e8f80138dd9061c7e` | unknown | procedural | All five criteria met. Tighten the formatter regression’s assertion. |
+| 2026-11-26 | R-9 | implementation | `eb1b4b1f79828eacc2ac0cda024e175174c58d99` | unknown | procedural | All five criteria met. |
 
 ### R-1
 
@@ -329,6 +332,28 @@ SEVERITY: should-fix
 WHERE: tests/hook.sh:25 and 32-44, pinned conventions/testing.md under Prove the test catches the defect
 EVIDENCE: The new recursive formatter assertion checks only the exit status while the earlier fixture still leaves main.tf misformatted. A control with a correctly formatted .tfmock.hcl file exited 3 and listed only main.tf, so that assertion cannot establish that the formatter checked the mock or query file. Independent isolated local fixtures established that both production paths reach the intended files at this commit.
 PROPOSAL: Restore the working copy of main.tf before the extension cases and require the native formatter and hook to name the intended file in their refusal.
+
+### R-9
+
+CRITERION: AC-01 A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+VERDICT: met
+EVIDENCE: tests/check.sh passed for both engines in a temporary export of eb1b4b1f79828eacc2ac0cda024e175174c58d99. The fixtures verified checkout preservation and refused incorrect formatting, invalid configuration, a missing local module, and lockfile failures. A separate selected Terraform root completed with an unrelated tracked worktree deletion. tests/opentofu-files.sh passed an internal symlink through validation, linting and scanning.
+
+CRITERION: AC-02 The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+VERDICT: met
+EVIDENCE: Both exact-commit native check suites accepted the corrected fixtures and refused terraform_unused_declarations and AWS-0107. Trivy traced the policy violation to policy/main.tf. The OpenTofu file suite also refused an unused declaration in an OpenTofu-only root.
+
+CRITERION: AC-03 The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
+VERDICT: met
+EVIDENCE: The composite comparison steps in GitHub run 45858390370 at eb1b4b1f79828eacc2ac0cda024e175174c58d99 reported and matched Terraform 1.17.2 or OpenTofu 1.13.10, TFLint 0.66.0 and Trivy 0.76.2. Local checks refused omitted and invalid inputs, an unsupported pin, an escaping path, an empty scope and a wrong digest. The engine and TFLint observers confirmed the synthetic caller credential and CLI configuration were absent. The native runner uses that environment for the engine and linter child paths.
+
+CRITERION: AC-04 The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+VERDICT: met
+EVIDENCE: At eb1b4b1f79828eacc2ac0cda024e175174c58d99, each local hook suite passed ten consecutive runs, verifying the staged and unstaged cases and preservation of the source and index. The recursive Terraform formatter and hook each named the intended mock and query files when refusing them. In temporary copies, the regression failed when the hook skipped either file type and when the recursive formatter reported a failure for an unrelated file. The hosted Terraform job also named each intended file in both formatter paths.
+
+CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+VERDICT: met
+EVIDENCE: All three jobs in GitHub Test run 45858390370 used eb1b4b1f79828eacc2ac0cda024e175174c58d99 and succeeded. Both engine jobs completed the passing composite, observed the intended formatting failure and matched the direct verdicts. Local actionlint and tests/release.sh passed from the exact export. Both publishing jobs depend on the gate after the callable fixture workflow. The pinned shared workflow performs tag creation after that gate.
 
 ## Sources
 
