@@ -17,7 +17,7 @@ defaults:
 jobs:
   actions:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    uses: vhco-pro/.github/.github/workflows/reusable-codeql-actions.yml@e03ad61274b2bf0738b36ed67dff1c376321fb64 # v1.2.4
+    uses: vhco-pro/.github/.github/workflows/reusable-codeql-actions.yml@119c3c5c884b2b9a6529e741b239eac288942262 # v1.2.5
     permissions:
       security-events: write
       contents: read
