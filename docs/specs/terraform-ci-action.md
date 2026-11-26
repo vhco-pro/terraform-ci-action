@@ -75,7 +75,8 @@ Live plan, apply, deployment, private repositories and live provider tests are o
       Evidence: tests/check.sh passed with both pinned engines, including a mismatched lockfile and an isolated child environment.
 - [x] T4 `examples/native-hook/` uses the same formatter on index entries. Run `tests/hook.sh` (AC-04).
       Evidence: tests/hook.sh refused malformed staged HCL and accepted clean staged HCL with different worktree content.
-- [ ] T5 `action.yml`, `.github/workflows/`, and `README.md` wire local checks, fixtures and the release gate. Run `tests/release.sh` and `actionlint`. Observe the composite on a public runner when authorized (AC-03, AC-05).
+- [x] T5 `action.yml`, `.github/workflows/`, and `README.md` wire local checks, fixtures and the release gate. Run `tests/release.sh` and `actionlint`. Observe the composite on a public runner when authorized (AC-03, AC-05).
+      Evidence: actionlint, release gate fixtures, setup-action.sh outputs, and direct action fixture comparison passed locally. Hosted composite execution remains pending.
 
 ## Open Questions
 

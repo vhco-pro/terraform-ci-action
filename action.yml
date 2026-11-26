@@ -1,0 +1,60 @@
+name: Terraform and OpenTofu CI
+description: Check a Terraform or OpenTofu root without connecting to its backend.
+branding:
+  icon: check-circle
+  color: purple
+inputs:
+  working-directory:
+    description: Root directory relative to the checkout.
+    default: .
+  engine:
+    description: terraform or tofu.
+    required: true
+  engine-version:
+    description: Exact supported engine version.
+    required: true
+  root-kind:
+    description: deployable requires a committed provider lockfile. module allows temporary resolution.
+    default: deployable
+  tflint-config:
+    description: Optional config path relative to the selected root.
+    default: ''
+outputs:
+  engine-version:
+    description: Installed engine version.
+    value: ${{ steps.check.outputs.engine-version }}
+  tflint-version:
+    description: Installed TFLint version.
+    value: ${{ steps.check.outputs.tflint-version }}
+  trivy-version:
+    description: Installed Trivy version.
+    value: ${{ steps.check.outputs.trivy-version }}
+runs:
+  using: composite
+  steps:
+    - id: setup
+      shell: bash
+      env:
+        TERRAFORM_CI_ENGINE: ${{ inputs.engine }}
+        TERRAFORM_CI_ENGINE_VERSION: ${{ inputs.engine-version }}
+      run: '"$GITHUB_ACTION_PATH/scripts/setup-action.sh"'
+    - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+      if: steps.setup.outputs.engine == 'tofu'
+      with:
+        tofu_version: ${{ steps.setup.outputs.engine-version }}
+        tofu_wrapper: false
+        checksums: ${{ steps.setup.outputs.tofu-checksums }}
+    - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+      with:
+        tflint_version: ${{ steps.setup.outputs.tflint-version }}
+        tflint_wrapper: false
+        checksums: ${{ steps.setup.outputs.tflint-checksum }}
+    - id: check
+      shell: bash
+      env:
+        TERRAFORM_CI_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        TERRAFORM_CI_ENGINE: ${{ inputs.engine }}
+        TERRAFORM_CI_ENGINE_VERSION: ${{ inputs.engine-version }}
+        TERRAFORM_CI_ROOT_KIND: ${{ inputs.root-kind }}
+        TERRAFORM_CI_TFLINT_CONFIG: ${{ inputs.tflint-config }}
+      run: '"$GITHUB_ACTION_PATH/scripts/check.sh"'

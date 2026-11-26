@@ -1,0 +1,74 @@
+name: Test
+on:
+  workflow_call:
+  pull_request:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  workflows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+      - run: tests/release.sh
+
+  fixtures:
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [terraform, tofu]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: pin
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: printf 'version=%s\n' "$(scripts/setup.sh pin "$ENGINE" | cut -f1)" >> "$GITHUB_OUTPUT"
+      - id: pass
+        uses: ./
+        with:
+          engine: ${{ matrix.engine }}
+          engine-version: ${{ steps.pin.outputs.version }}
+          root-kind: module
+          working-directory: tests/fixtures/pass
+      - id: fail
+        continue-on-error: true
+        uses: ./
+        with:
+          engine: ${{ matrix.engine }}
+          engine-version: ${{ steps.pin.outputs.version }}
+          root-kind: module
+          working-directory: tests/fixtures/fail
+      - name: Compare action and local verdicts
+        env:
+          TERRAFORM_CI_ENGINE: ${{ matrix.engine }}
+          TERRAFORM_CI_ENGINE_VERSION: ${{ steps.pin.outputs.version }}
+          TERRAFORM_CI_ROOT_KIND: module
+          COMPOSITE_FAILURE: ${{ steps.fail.outcome }}
+          ACTION_ENGINE_VERSION: ${{ steps.pass.outputs.engine-version }}
+          ACTION_TFLINT_VERSION: ${{ steps.pass.outputs.tflint-version }}
+          ACTION_TRIVY_VERSION: ${{ steps.pass.outputs.trivy-version }}
+        run: tests/compare-action.sh
+      - name: Run native fixtures
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: tests/check.sh "$ENGINE"
+      - if: matrix.engine == 'terraform'
+        run: tests/hook.sh
+      - if: matrix.engine == 'terraform'
+        run: tests/setup.sh
