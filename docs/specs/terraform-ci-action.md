@@ -63,7 +63,11 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 
 ## Tasks
 
-None yet. Tasks are populated after the specification gate.
+- [ ] T1 `tests/setup.sh`, `tests/check.sh`, `tests/hook.sh`, and `tests/release.sh` specify the commands and refusal cases. See each fail because its entry point is absent (AC-01, AC-02, AC-03, AC-04, AC-05).
+- [ ] T2 `scripts/setup.sh` and tool pins install and identify verified artifacts. Run `tests/setup.sh` (AC-03).
+- [ ] T3 `scripts/check.sh` runs the isolated native checks. Run `tests/check.sh` with both engines (AC-01, AC-02, AC-03).
+- [ ] T4 `examples/native-hook/` uses the same formatter on index entries. Run `tests/hook.sh` (AC-04).
+- [ ] T5 `action.yml`, `.github/workflows/`, and `README.md` wire local checks, fixtures and the release gate. Run `tests/release.sh` and `actionlint`. Observe the composite on a public runner when authorized (AC-03, AC-05).
 
 ## Open Questions
 
