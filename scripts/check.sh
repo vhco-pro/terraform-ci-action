@@ -31,7 +31,7 @@ run() {
 }
 installed=$(run "$engine_bin" version -json | jq -er .terraform_version)
 [[ $installed == "$engine_version" ]] || fail "$engine $engine_version is required, found $installed."
-check_format() { run "$engine_bin" fmt -check "$@" || fail 'Formatting failed.'; }
+check_format() { run "$engine_bin" fmt -check -no-color "$@" || fail 'Formatting failed.'; }
 if [[ $mode == format ]]; then
   check_format "$@"
   exit 0
@@ -56,6 +56,9 @@ esac
 tree=$scratch/tree
 mkdir -p "$tree"
 git -C "$workspace" ls-files --cached --deduplicate -z |
+  while IFS= read -r -d '' path; do
+    if [[ -e $workspace/$path || -L $workspace/$path ]]; then printf '%s\0' "$path"; fi
+  done |
   tar -cf "$scratch/source.tar" -C "$workspace" --no-recursion --null -T -
 tar -xf "$scratch/source.tar" -C "$tree"
 while IFS= read -r -d '' link; do
@@ -102,14 +105,25 @@ run "$engine_bin" init "${init_flags[@]}" || fail 'Initialization failed.'
 run "$engine_bin" validate -no-color || fail 'Validation failed.'
 # Analyze the selected engine's view. TFLint reads .tf and .tf.json only.
 find "$tree" \( -type f -o -type l \) \( -name '*.tofu' -o -name '*.tofu.json' \) -print0 > "$scratch/tofu-sources"
+if [[ $engine == tofu ]]; then
+  # Read all sources before removing any name an internal symlink can reference.
+  while IFS= read -r -d '' source; do
+    case "$source" in
+      *.tofu.json) target=${source%.tofu.json}.tf.json ;;
+      *.tofu) target=${source%.tofu}.tf ;;
+    esac
+    projected="$scratch/projected/${target#"$tree"/}"
+    mkdir -p -- "${projected%/*}"
+    cp -L -- "$source" "$projected"
+  done < "$scratch/tofu-sources"
+fi
 while IFS= read -r -d '' source; do
   if [[ $engine == tofu ]]; then
     case "$source" in
       *.tofu.json) target=${source%.tofu.json}.tf.json ;;
       *.tofu) target=${source%.tofu}.tf ;;
     esac
-    cp -L -- "$source" "$scratch/projected"
-    mv -fT -- "$scratch/projected" "$target"
+    mv -fT -- "$scratch/projected/${target#"$tree"/}" "$target"
   fi
   rm -- "$source"
 done < "$scratch/tofu-sources"

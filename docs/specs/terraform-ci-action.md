@@ -85,6 +85,9 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 - [x] T7 `scripts/check.sh` and `tests/check.sh` reject roots that contain directories with configuration suffixes but no configuration files. Run both engine suites (AC-01).
       Evidence: The .tf-named directory fixture first passed an empty root incorrectly. Both native suites reject it after checking that a source is a file.
 
+- [x] T8 `scripts/check.sh`, the native hook and their fixtures handle worktree deletions, internal OpenTofu symlinks and Terraform formatter file types. Verify plain diagnostics and read the setup test's version from the manifest (AC-01, AC-03, AC-04).
+      Evidence: The deletion, symlink, staged mock format and redirected diagnostics regressions first failed against the prior code. Both engines' native check and hook suites, OpenTofu file cases, Terraform setup, release fixtures and actionlint passed after the fixes.
+
 ## Open Questions
 
 None.

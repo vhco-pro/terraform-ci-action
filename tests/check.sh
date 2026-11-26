@@ -54,6 +54,13 @@ check
 test "$(snapshot)" = "$before"
 test ! -d "$scratch/tree/.terraform"
 test ! -e "$scratch/tree/terraform.tfstate"
+mkdir "$scratch/tree/docs"
+printf '%s\n' 'Unrelated fixture' > "$scratch/tree/docs/note.txt"
+git -C "$scratch/tree" add -- docs/note.txt
+git -C "$scratch/tree" -c user.name='Synthetic fixture' -c user.email=fixture@example.invalid commit -q -m 'add unrelated note'
+rm -- "$scratch/tree/docs/note.txt"
+check
+test ! -e "$scratch/tree/docs/note.txt"
 refuse 'engine must be' env TERRAFORM_CI_WORKSPACE="$scratch/tree" TERRAFORM_CI_ENGINE=invalid TERRAFORM_CI_ENGINE_VERSION="$version" "$repo/scripts/check.sh"
 refuse 'Unsupported' env TERRAFORM_CI_WORKSPACE="$scratch/tree" TERRAFORM_CI_ENGINE="$engine" TERRAFORM_CI_ENGINE_VERSION=0.0.1 "$repo/scripts/check.sh"
 refuse 'escapes the checkout' env TERRAFORM_CI_WORKING_DIRECTORY=.. TERRAFORM_CI_WORKSPACE="$scratch/tree" TERRAFORM_CI_ENGINE="$engine" TERRAFORM_CI_ENGINE_VERSION="$version" "$repo/scripts/check.sh"

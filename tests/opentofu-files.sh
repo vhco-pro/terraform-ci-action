@@ -35,3 +35,18 @@ git rm -q -f -- main.tf main.tofu
 printf '%s\n' '{"terraform":{"required_version":">= 1.8"},"output":{"proof":{"value":"synthetic"}}}' >main.tofu.json
 git add -- main.tofu.json
 check
+
+git rm -q -f -- main.tofu.json
+mkdir assets infra
+cat > assets/source.tofu <<'HCL'
+terraform {
+  required_version = ">= 1.8"
+}
+
+output "proof" {
+  value = "synthetic"
+}
+HCL
+ln -s ../assets/source.tofu infra/main.tofu
+git add -- infra/main.tofu assets/source.tofu
+TERRAFORM_CI_WORKING_DIRECTORY=infra check
