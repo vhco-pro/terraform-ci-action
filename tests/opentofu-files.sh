@@ -7,7 +7,7 @@ cd "$scratch"
 git init -q
 version=$("$repo/scripts/setup.sh" pin tofu | cut -f1)
 check() {
-  TERRAFORM_CI_ENGINE=tofu TERRAFORM_CI_ENGINE_VERSION="$version" \
+  TERRAFORM_CI_WORKSPACE="$scratch" TERRAFORM_CI_ENGINE=tofu TERRAFORM_CI_ENGINE_VERSION="$version" \
     TERRAFORM_CI_ROOT_KIND=module "$repo/scripts/check.sh"
 }
 cat >main.tofu <<'HCL'
