@@ -1,6 +1,7 @@
 ---
-status: planned
-status_description: "The owner accepted the reviewed specification."
+status: in-progress
+status_description: "Implementation is claimed on the feature branch."
+branch: feat/terraform-ci-action
 issue: https://github.com/vhco-pro/terraform-ci-action/issues/1
 goal: "Consumers can run the same read-only Terraform or OpenTofu checks locally and in GitHub Actions."
 covers:
