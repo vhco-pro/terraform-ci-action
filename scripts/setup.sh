@@ -18,7 +18,12 @@ esac
 supported_version=$(awk -v name="$manifest_name" '$1 == name { print $2 }' "$script_dir/.tool-versions")
 [[ $supported_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Missing or invalid tool pin: $tool"
 version=${version:-$supported_version}
-[[ $version == "$supported_version" ]] || fail "Unsupported $tool version: $version (supported: $supported_version)"
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Invalid $tool version: $version"
+if [[ $version != "$supported_version" ]]; then
+  if [[ $tool != tofu ]] || ! awk -v name="tofu-$version.zip" '$2 == name { found = 1 } END { exit !found }' "$script_dir/checksums.sha256"; then
+    fail "Unsupported $tool version: $version (default: $supported_version)"
+  fi
+fi
 
 case "$tool" in
   terraform) base_url="https://releases.hashicorp.com/terraform/$version"; asset="terraform_${version}_linux_amd64.zip" ;;

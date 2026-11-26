@@ -5,10 +5,10 @@ engine=${1:?engine required}
 scratch=$(mktemp -d)
 trap 'rm -rf -- "$scratch"' EXIT
 
-version=$("$repo/scripts/setup.sh" pin "$engine" | cut -f1)
+version=$("$repo/scripts/setup.sh" pin "$engine" "${TERRAFORM_CI_ENGINE_VERSION:-}" | cut -f1)
 check() {
   TERRAFORM_CI_WORKSPACE="$scratch/tree" TERRAFORM_CI_ENGINE="$engine" \
-    TERRAFORM_CI_ENGINE_VERSION="$version" "$repo/scripts/check.sh" "$@"
+    TERRAFORM_CI_ENGINE_VERSION="$version" "$repo/scripts/check.sh"
 }
 refuse() {
   local finding=$1

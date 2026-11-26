@@ -15,10 +15,12 @@ Set the workflow job's contents permission to read and use Ubuntu 24.04 x64.
 | Input | Default |
 | --- | --- |
 | `engine` | Required. `terraform` or `tofu`. |
-| `engine-version` | Required. Exact version in [the tool pins](scripts/.tool-versions). |
+| `engine-version` | Required. Use the [default pin](scripts/.tool-versions) or another OpenTofu version with [pinned Linux x64 archives](scripts/checksums.sha256). |
 | `working-directory` | `.` within the checkout. |
 | `root-kind` | `deployable`. Choose `module` for a reusable module. |
 | `tflint-config` | Bundled recommended rules. An override is relative to the checked root. |
+
+OpenTofu 1.13.9 remains supported alongside the default 1.13.10.
 
 Outputs are `engine-version`, `tflint-version`, and `trivy-version`. A deployable
 root needs a committed `.terraform.lock.hcl`. Each caller selects its affected roots,
@@ -70,3 +72,8 @@ Run `tests/setup.sh`, `tests/check.sh terraform`, `tests/check.sh tofu`,
 `tests/hook.sh` for each engine, `tests/opentofu-files.sh`, `tests/release.sh`, and `actionlint`. Update archive digests
 from upstream release metadata when changing the versions. A version change
 without a matching digest fails setup.
+
+## Security checks
+
+CodeQL scans the GitHub Actions files. ShellCheck checks the Bash scripts
+and the native Git hook. OpenSSF Scorecard runs on the public default branch.
