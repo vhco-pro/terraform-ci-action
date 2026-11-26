@@ -78,6 +78,8 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 - [x] T5 `action.yml`, `.github/workflows/`, and `README.md` wire local checks, fixtures and the release gate. Run `tests/release.sh` and `actionlint`. Observe the composite on a public runner when authorized (AC-03, AC-05).
       Evidence: actionlint, release gate fixtures, setup-action.sh outputs, and direct action fixture comparison passed locally. Hosted composite execution remains pending.
 
+- [ ] T6 `scripts/check.sh`, `examples/native-hook/`, and their fixtures enforce a committed lockfile and the selected engine's native source types. Run the two engine checks, both hook cases, and the staged-only lock refusal (AC-01, AC-02, AC-04).
+
 ## Open Questions
 
 None.
