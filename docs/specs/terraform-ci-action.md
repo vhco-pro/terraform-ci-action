@@ -46,13 +46,13 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 
 ## Acceptance Criteria
 
-- [x] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
-      Evidence: Both native check suites and tests/opentofu-files.sh passed. A staged-only lockfile was refused.
+- [ ] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+      Evidence: R-7 found that an unrelated deletion aborts a check and an internal OpenTofu symlink fails during source projection.
 - [x] AC-02: The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
       Evidence: Both engine runs passed corrected fixtures and refused terraform_unused_declarations and AWS-0107 at the expected stages.
 - [ ] AC-03: The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
-- [x] AC-04: The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
-      Evidence: tests/hook.sh passed with Terraform and OpenTofu and verified preservation of the source and index.
+- [ ] AC-04: The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+      Evidence: R-7 found that the hook skips staged Terraform mock and query formatting.
 - [ ] AC-05: The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
 
 ## Test Plan
@@ -100,6 +100,8 @@ None.
 | 2026-11-26 | R-4 | implementation | `9d975469a76a271a9834c0505046b9b326b4d3f1` | unknown | procedural | OpenTofu file discovery and committed-lockfile enforcement need fixes. |
 | 2026-11-26 | R-5 | implementation | `75b3f077ccb1d2b2aff315515b22d562265e0890` | unknown | procedural | Native findings resolved. Hosted checks pending. |
 | 2026-11-26 | R-6 | implementation | `b3cc69cf602f7c55070e97aec499bf4ab817cac9` | unknown | procedural | Native criteria met. Hosted execution pending. |
+
+| 2026-11-26 | R-7 | implementation | `be39185bc301c7ab26f889a85097b998663a56b5` | unknown | procedural | Hosted fixtures passed. Worktree snapshots and hook formatting need fixes. |
 
 ### R-1
 
@@ -237,6 +239,63 @@ EVIDENCE: `tests/hook.sh terraform` and `tests/hook.sh tofu` passed at the exact
 CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
 VERDICT: not verified
 EVIDENCE: Both engines passed and failed the public fixture files as intended through the direct entry point at the exact commit. `actionlint` and `tests/release.sh` passed. The publication jobs depend on the callable fixture workflow through the gate job. Hosted fixture execution remains unobserved.
+
+### R-7
+
+CRITERION: AC-01 A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+VERDICT: not met
+EVIDENCE: The exact-commit native suites passed on both engines, including malformed and unformatted files, a missing module, lockfile refusals, and checkout preservation. In a separate disposable checkout, the same valid Terraform root passed before an unrelated tracked file was removed from the worktree. After that removal the full check exited 2 before reaching the selected root. A separate valid OpenTofu root using an internal symlink initialized and validated, then failed during source projection.
+
+CRITERION: AC-02 The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+VERDICT: met
+EVIDENCE: tests/check.sh terraform and tests/check.sh tofu passed from a temporary export of be39185bc301c7ab26f889a85097b998663a56b5. Each accepted the corrected fixtures, refused terraform_unused_declarations, and attributed AWS-0107 to policy/main.tf. tests/opentofu-files.sh also refused an unused declaration in an OpenTofu-only root.
+
+CRITERION: AC-03 The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
+VERDICT: met
+EVIDENCE: GitHub run 45846043328 checked out be39185bc301c7ab26f889a85097b998663a56b5 in both fixture jobs. Their successful comparison steps reported Terraform 1.17.2 or OpenTofu 1.13.10, TFLint 0.66.0, and Trivy 0.76.2. Native setup and input tests from the exact commit refused the wrong digest, missing engine and version inputs, the unsupported version, an escaping path, and an empty scope. The engine observer and a separate TFLint observer confirmed that the synthetic credential and caller CLI configuration were absent. The same allowlisted runner launches the engine and TFLint plugin paths.
+
+CRITERION: AC-04 The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+VERDICT: not met
+EVIDENCE: Both tests/hook.sh engine runs passed staged and unstaged cases in temporary repositories and preserved the source and index. In two additional disposable Terraform repositories at the exact commit, the hook exited 0 for a misformatted staged .tfmock.hcl or .tfquery.hcl file. The full check exited 1 at formatting for each of those files.
+
+CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+VERDICT: met
+EVIDENCE: GitHub run 45846043328 checked out be39185bc301c7ab26f889a85097b998663a56b5 in all three jobs. Both engine jobs observed the composite pass and the expected formatting failure, then passed the direct comparison. The workflow lint and release fixture job also passed. Local actionlint and tests/release.sh passed from the exact export. Both publication jobs depend on the gate, which depends on the callable fixture workflow. The shared workflow at its pinned commit runs tag creation after this caller gate. No publishing run was needed to verify the gate.
+
+FINDING: F-01
+KIND: factual
+SEVERITY: should-fix
+WHERE: scripts/check.sh:56-60, README.md:3-6, AC-01
+EVIDENCE: The full check passes every cached checkout path to tar. A disposable checkout with a valid selected infra root passed before removal of a tracked notes.txt outside that root, then exited 2 with tar reporting that notes.txt could not be found. The selected root was unchanged.
+PROPOSAL: Include tracked worktree files that still exist in the snapshot and retain explicit checks for files the selected root requires. Add a fixture with an unstaged deletion outside the selected root.
+
+FINDING: F-02
+KIND: factual
+SEVERITY: should-fix
+WHERE: examples/native-hook/.githooks/pre-commit:17-20, tests/hook.sh, AC-04
+EVIDENCE: The hook's extension filter omits .tfmock.hcl and .tfquery.hcl. With Terraform 1.17.2, the hook exited 0 for each separately staged misformatted file while the full check named the file and exited 1 at formatting.
+PROPOSAL: Match the supported formatter file types for the selected engine. Verify staged hook and full-check parity for the two Terraform file types.
+
+FINDING: F-03
+KIND: factual
+SEVERITY: should-fix
+WHERE: scripts/.tool-versions:1, tests/setup.sh:7-17, pinned conventions/delivery.md under Pinning and updates
+EVIDENCE: tests/setup.sh duplicates the Terraform version in the managed manifest. In a scratch copy, changing the manifest version and its matching checksum key let the pin resolver return the new version. The setup test immediately refused because it still requested 1.17.2. The delivery convention places tool configuration once next to its owning component.
+PROPOSAL: Read Terraform's selected version from the manifest through the existing pin resolver and compare the installed CLI with that version. Continue to require an independently verified digest for every update.
+
+FINDING: F-04
+KIND: factual
+SEVERITY: should-fix
+WHERE: scripts/check.sh:61-67 and 104-115, AC-01
+EVIDENCE: A tracked OpenTofu configuration symlink to a regular .tofu file in another directory inside a disposable checkout passed the script's confinement check, initialization and validation. Source projection removed the symlink target before reading the symlink, then exited 1 because the selected configuration could no longer be read.
+PROPOSAL: Read the OpenTofu source contents before replacing or removing any source names. Verify that an internal symlink still reaches linting and scanning.
+
+FINDING: F-05
+KIND: factual
+SEVERITY: should-fix
+WHERE: scripts/check.sh:28-34, pinned conventions/terminal-output.md under Colour, streams and interaction
+EVIDENCE: In both engines, a malformed file sent through scripts/check.sh format with redirected output and NO_COLOR=0 produced ANSI styling bytes. The terminal standard defaults non-TTY output to plain text and treats a nonempty NO_COLOR value as a request to suppress styling.
+PROPOSAL: Configure formatter diagnostics to stay plain in redirected runs and when the caller requests no colour. Check redirected diagnostics from both engine paths.
 
 ## Sources
 
