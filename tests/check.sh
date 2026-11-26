@@ -105,3 +105,37 @@ check
 sed -i 's#10.0.0.0/24#0.0.0.0/0#' "$scratch/tree/policy/main.tf"
 refuse 'AWS-0107' check
 grep -F 'policy/main.tf' "$scratch/result"
+
+cp "$scratch/main.tf" "$scratch/tree/main.tf"
+git -C "$scratch/tree" rm -q -f -- policy/main.tf
+cat > "$scratch/tree/main.tf" <<'HCL'
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    random = {
+      source  = "registry.terraform.io/hashicorp/random"
+      version = "3.7.2"
+    }
+  }
+}
+HCL
+cat > "$scratch/tree/.terraform.lock.hcl" <<'HCL'
+provider "registry.terraform.io/hashicorp/random" {
+  version     = "3.6.0"
+  constraints = "3.6.0"
+}
+HCL
+refuse 'configured version constraint 3.7.2' check
+cp "$scratch/main.tf" "$scratch/tree/main.tf"
+printf '# Built-in provider only.\n' > "$scratch/tree/.terraform.lock.hcl"
+
+real_engine=$(command -v "$engine")
+mkdir "$scratch/observer"
+{
+  printf '#!/usr/bin/env bash\nset -euo pipefail\n'
+  printf '[[ ! -v AWS_ACCESS_KEY_ID && $TF_CLI_CONFIG_FILE != /fixture/caller.rc ]] || { printf "Unexpected caller credentials or config" >&2; exit 1; }\n'
+  printf 'exec %q "$@"\n' "$real_engine"
+} >"$scratch/observer/$engine"
+chmod +x "$scratch/observer/$engine"
+AWS_ACCESS_KEY_ID=synthetic-sentinel TF_CLI_CONFIG_FILE=/fixture/caller.rc PATH="$scratch/observer:$PATH" check

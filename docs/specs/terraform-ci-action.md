@@ -46,8 +46,10 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 
 ## Acceptance Criteria
 
-- [ ] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
-- [ ] AC-02: The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+- [x] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+      Evidence: tests/check.sh terraform and tests/check.sh tofu passed clean and refusal cases with unchanged caller files.
+- [x] AC-02: The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+      Evidence: Both engine runs passed corrected fixtures and refused terraform_unused_declarations and AWS-0107 at the expected stages.
 - [ ] AC-03: The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
 - [ ] AC-04: The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
 - [ ] AC-05: The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
@@ -68,7 +70,8 @@ Live plan, apply, deployment, private repositories and live provider tests are o
       Evidence: Each test reached its missing setup, release, or hook entry point and failed; the check test first reached its missing tool resolver.
 - [x] T2 `scripts/setup.sh` and tool pins install and identify verified artifacts. Run `tests/setup.sh` (AC-03).
       Evidence: tests/setup.sh rejected an invalid archive before install and verified the exact Terraform release archive and CLI version.
-- [ ] T3 `scripts/check.sh` runs the isolated native checks. Run `tests/check.sh` with both engines (AC-01, AC-02, AC-03).
+- [x] T3 `scripts/check.sh` runs the isolated native checks. Run `tests/check.sh` with both engines (AC-01, AC-02, AC-03).
+      Evidence: tests/check.sh passed with both pinned engines, including a mismatched lockfile and an isolated child environment.
 - [ ] T4 `examples/native-hook/` uses the same formatter on index entries. Run `tests/hook.sh` (AC-04).
 - [ ] T5 `action.yml`, `.github/workflows/`, and `README.md` wire local checks, fixtures and the release gate. Run `tests/release.sh` and `actionlint`. Observe the composite on a public runner when authorized (AC-03, AC-05).
 
