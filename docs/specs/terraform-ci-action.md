@@ -109,6 +109,7 @@ None.
 | 2026-11-26 | R-8 | implementation | `863b523fb0dc6cf99f71c83e8f80138dd9061c7e` | unknown | procedural | All five criteria met. Tighten the formatter regression’s assertion. |
 | 2026-11-26 | R-9 | implementation | `eb1b4b1f79828eacc2ac0cda024e175174c58d99` | unknown | procedural | All five criteria met. |
 | 2026-11-26 | R-10 | implementation | `6622432a030331c4e0eedc49669e21be26c47ab7` | unknown | procedural | All five criteria met with the new OpenTofu pin and hosted fixture matrix. |
+| 2026-11-26 | R-11 | implementation | `f19ddf9a11f58994e053622622171c2dc7f29691` | unknown | procedural | All five criteria met. The Scorecard provider enforces the exact publication ref. |
 
 ### R-1
 
@@ -376,6 +377,35 @@ EVIDENCE: Local hook fixtures passed at 6622432a030331c4e0eedc49669e21be26c47ab7
 CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
 VERDICT: met
 EVIDENCE: All four jobs in GitHub Test run 45871420211 used 6622432a030331c4e0eedc49669e21be26c47ab7 and succeeded. All three composite variants passed the clean fixture, refused the formatting fixture and matched direct execution. Hosted workflow lint, ShellCheck and release guard fixtures passed, and local actionlint and tests/release.sh also passed. Both publishing jobs depend on the gate after the callable fixture workflow. The pinned shared workflow creates the tag after that gate.
+
+### R-11
+
+CRITERION: AC-01 A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+VERDICT: met
+EVIDENCE: In GitHub Test run 45872115226 at f19ddf9a11f58994e053622622171c2dc7f29691, native check suites passed on Terraform 1.17.2 and OpenTofu 1.13.10 and 1.13.9. The suites assert checkout preservation and refuse bad formatting, invalid configuration, an unavailable local module and lockfile failures. Both OpenTofu file suites passed. The previously reviewed native entry points and fixtures are unchanged.
+
+CRITERION: AC-02 The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+VERDICT: met
+EVIDENCE: All three exact-commit fixture jobs in run 45872115226 passed the native tests that accept the corrected configurations and refuse terraform_unused_declarations and AWS-0107. The tests assert the policy location policy/main.tf. Both OpenTofu jobs also passed the dedicated file suite that checks the lint refusal in an OpenTofu-only root.
+
+CRITERION: AC-03 The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
+VERDICT: met
+EVIDENCE: The three composite comparisons in GitHub run 45872115226 at f19ddf9a11f58994e053622622171c2dc7f29691 matched the installed Terraform 1.17.2 or OpenTofu 1.13.10 or 1.13.9, plus TFLint 0.66.0 and Trivy 0.76.2. The hosted native input, scope, checksum and synthetic child-environment fixtures passed. An exact-export comparison confirmed both 1.13.9 digests still matched the previously verified published SHA256SUMS. The installer and isolated runner are unchanged from the review that verified both artifacts and ran the separate TFLint observer.
+
+CRITERION: AC-04 The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+VERDICT: met
+EVIDENCE: All three hook test steps in GitHub run 45872115226 passed at f19ddf9a11f58994e053622622171c2dc7f29691. They refuse staged bad formatting, accept a clean staged version despite a misformatted worktree file, and compare source and index state. The Terraform case requires both formatter paths to name the intended mock and query files. Neither formatter path nor its tests changed since the independent checks.
+
+CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+VERDICT: met
+EVIDENCE: GitHub Test run 45872115226 succeeded in all four jobs at f19ddf9a11f58994e053622622171c2dc7f29691. The three composite variants passed the clean fixture, refused the formatting fixture and matched direct execution. Workflow lint, ShellCheck and the release guard passed on the runner. Local actionlint and tests/release.sh passed in an exact export. Both tag and recovery jobs depend on the release gate after the callable fixture workflow. The separate CodeQL run 45872115858 uploaded the exact Actions analysis with zero results.
+
+FINDING: F-01
+KIND: factual
+SEVERITY: should-fix
+WHERE: .github/workflows/scorecard.yml:18-22
+EVIDENCE: GitHub Actions string equality ignores case. The caller condition admits a manually selected branch whose name differs from the default branch only by case. A disposable Git repository confirmed that main and MAIN are distinct refs. The pinned upstream Scorecard action checks the full default ref with case-sensitive equality and refuses this invocation before publishing, so the caller runs a job it was intended to skip. [GitHub expression rules](https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#operators), [Pinned Scorecard validation](https://github.com/ossf/scorecard-action/blob/fa7117db83c52d787ae5a89f350999701505d78e/options/options.go)
+PROPOSAL: Gate the reusable workflow on a case-sensitive comparison of the fully qualified default ref and cover public default, other branch and tag cases.
 
 ## Sources
 
