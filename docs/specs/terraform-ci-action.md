@@ -105,6 +105,7 @@ None.
 | 2026-11-26 | R-6 | implementation | `b3cc69cf602f7c55070e97aec499bf4ab817cac9` | unknown | procedural | Native criteria met. Hosted execution pending. |
 
 | 2026-11-26 | R-7 | implementation | `be39185bc301c7ab26f889a85097b998663a56b5` | unknown | procedural | Hosted fixtures passed. Worktree snapshots and hook formatting need fixes. |
+| 2026-11-26 | R-8 | implementation | `863b523fb0dc6cf99f71c83e8f80138dd9061c7e` | unknown | procedural | All five criteria met. Tighten the formatter regression’s assertion. |
 
 ### R-1
 
@@ -299,6 +300,35 @@ SEVERITY: should-fix
 WHERE: scripts/check.sh:28-34, pinned conventions/terminal-output.md under Colour, streams and interaction
 EVIDENCE: In both engines, a malformed file sent through scripts/check.sh format with redirected output and NO_COLOR=0 produced ANSI styling bytes. The terminal standard defaults non-TTY output to plain text and treats a nonempty NO_COLOR value as a request to suppress styling.
 PROPOSAL: Configure formatter diagnostics to stay plain in redirected runs and when the caller requests no colour. Check redirected diagnostics from both engine paths.
+
+### R-8
+
+CRITERION: AC-01 A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+VERDICT: met
+EVIDENCE: tests/check.sh passed for Terraform and OpenTofu in an export of 863b523fb0dc6cf99f71c83e8f80138dd9061c7e. Both suites verified checkout preservation and the expected formatting, validation, missing dependency and lockfile refusals. The former failure cases passed in this review. A selected Terraform root completed after an unrelated tracked worktree deletion, and tests/opentofu-files.sh verified that a tracked internal OpenTofu symlink reached linting and scanning.
+
+CRITERION: AC-02 The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+VERDICT: met
+EVIDENCE: The two native check suites at 863b523fb0dc6cf99f71c83e8f80138dd9061c7e accepted the corrected fixtures and refused terraform_unused_declarations and AWS-0107. Trivy attributed AWS-0107 to policy/main.tf. tests/opentofu-files.sh also confirmed the lint refusal in an OpenTofu-only root.
+
+CRITERION: AC-03 The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
+VERDICT: met
+EVIDENCE: GitHub Test run 45857577399 used 863b523fb0dc6cf99f71c83e8f80138dd9061c7e. Both composite output comparisons matched the installed tools. Terraform was 1.17.2, OpenTofu 1.13.10, TFLint 0.66.0 and Trivy 0.76.2. Exact-commit local checks refused omitted and invalid inputs, unsupported pins, an empty scope, an escaping path and an incorrect digest. The engine and TFLint observers verified that the synthetic caller credential and CLI configuration were absent. The shared native runner applies that environment to the engine and linter child paths.
+
+CRITERION: AC-04 The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+VERDICT: met
+EVIDENCE: Both hook suites at 863b523fb0dc6cf99f71c83e8f80138dd9061c7e passed the staged and unstaged cases and preserved the source and index. In separate fixtures with one violation each, the native hook and full Terraform check named and refused the same misformatted .tfmock.hcl and .tfquery.hcl files. Redirected formatter diagnostics from both engines contained no ANSI control sequences with NO_COLOR unset or set to 0.
+
+CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+VERDICT: met
+EVIDENCE: All three jobs in GitHub Test run 45857577399 checked out 863b523fb0dc6cf99f71c83e8f80138dd9061c7e and succeeded. The engine logs showed composite success, the intended composite formatting failure and successful comparison with direct execution for both engines. Local actionlint and tests/release.sh passed from the exact export. Both publishing jobs depend on the release gate following the callable fixture workflow. The pinned shared workflow creates the tag after the caller gate.
+
+FINDING: F-01
+KIND: factual
+SEVERITY: should-fix
+WHERE: tests/hook.sh:25 and 32-44, pinned conventions/testing.md under Prove the test catches the defect
+EVIDENCE: The new recursive formatter assertion checks only the exit status while the earlier fixture still leaves main.tf misformatted. A control with a correctly formatted .tfmock.hcl file exited 3 and listed only main.tf, so that assertion cannot establish that the formatter checked the mock or query file. Independent isolated local fixtures established that both production paths reach the intended files at this commit.
+PROPOSAL: Restore the working copy of main.tf before the extension cases and require the native formatter and hook to name the intended file in their refusal.
 
 ## Sources
 
