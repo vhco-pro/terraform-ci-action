@@ -64,7 +64,8 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 
 ## Tasks
 
-- [ ] T1 `tests/setup.sh`, `tests/check.sh`, `tests/hook.sh`, and `tests/release.sh` specify the commands and refusal cases. See each fail because its entry point is absent (AC-01, AC-02, AC-03, AC-04, AC-05).
+- [x] T1 `tests/setup.sh`, `tests/check.sh`, `tests/hook.sh`, and `tests/release.sh` specify the commands and refusal cases. See each fail because its entry point is absent (AC-01, AC-02, AC-03, AC-04, AC-05).
+      Evidence: Each test reached its missing setup, release, or hook entry point and failed; the check test first reached its missing tool resolver.
 - [ ] T2 `scripts/setup.sh` and tool pins install and identify verified artifacts. Run `tests/setup.sh` (AC-03).
 - [ ] T3 `scripts/check.sh` runs the isolated native checks. Run `tests/check.sh` with both engines (AC-01, AC-02, AC-03).
 - [ ] T4 `examples/native-hook/` uses the same formatter on index entries. Run `tests/hook.sh` (AC-04).
