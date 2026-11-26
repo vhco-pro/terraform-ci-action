@@ -105,7 +105,6 @@ None.
 | 2026-11-26 | R-4 | implementation | `9d975469a76a271a9834c0505046b9b326b4d3f1` | unknown | procedural | OpenTofu file discovery and committed-lockfile enforcement need fixes. |
 | 2026-11-26 | R-5 | implementation | `75b3f077ccb1d2b2aff315515b22d562265e0890` | unknown | procedural | Native findings resolved. Hosted checks pending. |
 | 2026-11-26 | R-6 | implementation | `b3cc69cf602f7c55070e97aec499bf4ab817cac9` | unknown | procedural | Native criteria met. Hosted execution pending. |
-
 | 2026-11-26 | R-7 | implementation | `be39185bc301c7ab26f889a85097b998663a56b5` | unknown | procedural | Hosted fixtures passed. Worktree snapshots and hook formatting need fixes. |
 | 2026-11-26 | R-8 | implementation | `863b523fb0dc6cf99f71c83e8f80138dd9061c7e` | unknown | procedural | All five criteria met. Tighten the formatter regression’s assertion. |
 | 2026-11-26 | R-9 | implementation | `eb1b4b1f79828eacc2ac0cda024e175174c58d99` | unknown | procedural | All five criteria met. |
