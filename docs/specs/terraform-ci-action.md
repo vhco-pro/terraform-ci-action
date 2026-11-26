@@ -95,6 +95,7 @@ None.
 | 2026-11-26 | R-3 | spec | `7fde52a105f0fa1401f5c8bf35ad75ce162183a2` | unknown | procedural | No findings. |
 | 2026-11-26 | R-3 | spec | `7fde52a105f0fa1401f5c8bf35ad75ce162183a2` | n/a | n/a | accepted by owner |
 | 2026-11-26 | R-4 | implementation | `9d975469a76a271a9834c0505046b9b326b4d3f1` | unknown | procedural | OpenTofu file discovery and committed-lockfile enforcement need fixes. |
+| 2026-11-26 | R-5 | implementation | `75b3f077ccb1d2b2aff315515b22d562265e0890` | unknown | procedural | Native findings resolved. Hosted checks pending. |
 
 ### R-1
 
@@ -188,6 +189,28 @@ SEVERITY: should-fix
 WHERE: scripts/check.sh:58-59 and 74-76, tests/check.sh:25-49, README.md:23-25, AC-01
 EVIDENCE: The guard checks for a lockfile in the snapshot of indexed paths. A disposable deployable root passed after staging `.terraform.lock.hcl` even though `HEAD` did not contain it. The design explicitly requires a committed lockfile, and the current positive fixture never commits its lockfile.
 PROPOSAL: Enforce the committed-lockfile contract for deployable roots and align the README. Commit the positive fixture's lockfile and add a refusal case for a staged-only lockfile.
+
+### R-5
+
+CRITERION: AC-01 A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+VERDICT: met
+EVIDENCE: `tests/check.sh terraform`, `tests/check.sh tofu` and `tests/opentofu-files.sh` passed in temporary exports of `75b3f077ccb1d2b2aff315515b22d562265e0890`. Both engines refused a staged-only lockfile, a conflicting provider version, an unavailable local module, invalid configuration and bad formatting. The checkout-preservation checks passed. OpenTofu-only HCL and JSON roots passed.
+
+CRITERION: AC-02 The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+VERDICT: met
+EVIDENCE: Both native check suites at the exact commit accepted corrected fixtures and blocked `terraform_unused_declarations` and `AWS-0107`. Trivy attributed the AWS finding to `policy/main.tf`. The OpenTofu file suite also detected an unused declaration in an OpenTofu-only module.
+
+CRITERION: AC-03 The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
+VERDICT: not verified
+EVIDENCE: Exact-commit native suites refused invalid inputs, an escaping path, an unsupported pin and a wrong archive checksum. The synthetic child confirmed the credential sentinel and caller CLI configuration were absent. Both fixture runs reported the expected installed versions through the direct script. Hosted composite execution and its output parity were not observed.
+
+CRITERION: AC-04 The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+VERDICT: met
+EVIDENCE: `tests/hook.sh terraform` and `tests/hook.sh tofu` passed from the exact commit. Each blocked staged bad formatting and allowed a clean index with bad formatting only in the working file. The index and working file were preserved in both cases.
+
+CRITERION: AC-05 The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+VERDICT: not verified
+EVIDENCE: At the exact commit, both engines passed and failed the public fixture files as intended through the direct script. `actionlint` and `tests/release.sh` passed. Both publication jobs depend on the callable fixture workflow through the release gate. Hosted fixture execution was not observed.
 
 ## Sources
 
