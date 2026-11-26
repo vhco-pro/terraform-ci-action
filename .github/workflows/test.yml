@@ -68,7 +68,11 @@ jobs:
         env:
           ENGINE: ${{ matrix.engine }}
         run: tests/check.sh "$ENGINE"
-      - if: matrix.engine == 'terraform'
-        run: tests/hook.sh
+      - name: Check staged formatter
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: tests/hook.sh "$ENGINE"
+      - if: matrix.engine == 'tofu'
+        run: tests/opentofu-files.sh
       - if: matrix.engine == 'terraform'
         run: tests/setup.sh

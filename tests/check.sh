@@ -46,6 +46,7 @@ output "fixture" {
 HCL
   printf '# The fixture uses the built-in Terraform provider.\n' > "$scratch/tree/.terraform.lock.hcl"
   git -C "$scratch/tree" add -- main.tf .terraform.lock.hcl
+  git -C "$scratch/tree" -c user.name='Synthetic fixture' -c user.email=fixture@example.invalid commit -q -m baseline
 }
 make_fixture
 before=$(snapshot)
@@ -71,7 +72,10 @@ refuse 'Initialization failed' check
 cp "$scratch/main.tf" "$scratch/tree/main.tf"
 git -C "$scratch/tree" rm -q --cached .terraform.lock.hcl
 refuse 'committed .terraform.lock.hcl' check
+git -C "$scratch/tree" -c user.name='Synthetic fixture' -c user.email=fixture@example.invalid commit -q -m 'remove lock from HEAD'
 git -C "$scratch/tree" add -- .terraform.lock.hcl
+refuse 'committed .terraform.lock.hcl' check
+git -C "$scratch/tree" -c user.name='Synthetic fixture' -c user.email=fixture@example.invalid commit -q -m 'commit lock'
 mkdir "$scratch/tree/empty"
 refuse 'No Terraform configuration' env TERRAFORM_CI_WORKING_DIRECTORY=empty TERRAFORM_CI_WORKSPACE="$scratch/tree" TERRAFORM_CI_ENGINE="$engine" TERRAFORM_CI_ENGINE_VERSION="$version" "$repo/scripts/check.sh"
 

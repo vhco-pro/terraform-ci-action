@@ -68,11 +68,12 @@ done < <(find "$tree" -type l -print0)
 root="$tree/$relative"
 shopt -s nullglob
 sources=("$root"/*.tf "$root"/*.tf.json)
+if [[ $engine == tofu ]]; then sources+=("$root"/*.tofu "$root"/*.tofu.json); fi
 (( ${#sources[@]} > 0 )) || fail 'No Terraform configuration in working-directory.'
 
 init_flags=(-backend=false -input=false -no-color)
 if [[ $root_kind == deployable ]]; then
-  [[ -f $root/.terraform.lock.hcl ]] || fail 'A deployable root needs a committed .terraform.lock.hcl.'
+  [[ -f $root/.terraform.lock.hcl ]] && git -C "$workspace" cat-file -e "HEAD:$relative/.terraform.lock.hcl" 2>/dev/null || fail 'A deployable root needs a committed .terraform.lock.hcl.'
   init_flags+=(-lockfile=readonly)
 fi
 
@@ -95,6 +96,19 @@ cd -- "$root"
 check_format -recursive
 run "$engine_bin" init "${init_flags[@]}" || fail 'Initialization failed.'
 run "$engine_bin" validate -no-color || fail 'Validation failed.'
+# Analyze the selected engine's view. TFLint reads .tf and .tf.json only.
+find "$tree" \( -type f -o -type l \) \( -name '*.tofu' -o -name '*.tofu.json' \) -print0 > "$scratch/tofu-sources"
+while IFS= read -r -d '' source; do
+  if [[ $engine == tofu ]]; then
+    case "$source" in
+      *.tofu.json) target=${source%.tofu.json}.tf.json ;;
+      *.tofu) target=${source%.tofu}.tf ;;
+    esac
+    cp -L -- "$source" "$scratch/projected"
+    mv -fT -- "$scratch/projected" "$target"
+  fi
+  rm -- "$source"
+done < "$scratch/tofu-sources"
 run "$lint_bin" --config="$config" --init || fail 'TFLint plugin initialization failed.'
 run "$lint_bin" --config="$config" --format=compact || fail 'TFLint failed.'
 run "$scan_bin" config --config "$scratch/trivy.yaml" --cache-dir "$scratch/trivy-cache" \

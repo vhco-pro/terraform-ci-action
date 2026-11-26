@@ -21,8 +21,11 @@ Set the workflow job's contents permission to read and use Ubuntu 24.04 x64.
 | `tflint-config` | Bundled recommended rules. An override is relative to the checked root. |
 
 Outputs are `engine-version`, `tflint-version`, and `trivy-version`. A deployable
-root needs a tracked `.terraform.lock.hcl`. Each caller selects its affected roots,
-including dependents when a shared module changes.
+root needs a committed `.terraform.lock.hcl`. Each caller selects its affected roots,
+including dependents when a shared module changes. For OpenTofu, native checks
+use the original files. TFLint and Trivy see the selected OpenTofu source in
+the temporary copy under its equivalent Terraform filenames, with OpenTofu
+files taking precedence over their Terraform counterparts.
 
 ## Local check and hook
 
@@ -64,6 +67,6 @@ resource-specific exceptions with a reason and review date.
 ## Maintainer checks
 
 Run `tests/setup.sh`, `tests/check.sh terraform`, `tests/check.sh tofu`,
-`tests/hook.sh`, `tests/release.sh`, and `actionlint`. Update archive digests
+`tests/hook.sh` for each engine, `tests/opentofu-files.sh`, `tests/release.sh`, and `actionlint`. Update archive digests
 from upstream release metadata when changing the versions. A version change
 without a matching digest fails setup.

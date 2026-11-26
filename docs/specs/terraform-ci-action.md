@@ -46,13 +46,13 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 
 ## Acceptance Criteria
 
-- [ ] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
-      Evidence: R-4 found that a valid OpenTofu-only root was rejected and a staged-only lockfile was accepted.
+- [x] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure. It leaves the caller checkout intact.
+      Evidence: Both native check suites and tests/opentofu-files.sh passed. A staged-only lockfile was refused.
 - [x] AC-02: The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
       Evidence: Both engine runs passed corrected fixtures and refused terraform_unused_declarations and AWS-0107 at the expected stages.
 - [ ] AC-03: The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums. Provider and linter processes receive the isolated environment.
-- [ ] AC-04: The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
-      Evidence: R-4 found that the hook missed unformatted staged OpenTofu files.
+- [x] AC-04: The full check and native hook use the same formatter invocation and verdict for selected files. The hook formats in check mode against the index snapshot and leaves source and index intact.
+      Evidence: tests/hook.sh passed with Terraform and OpenTofu and verified preservation of the source and index.
 - [ ] AC-05: The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
 
 ## Test Plan
@@ -78,7 +78,9 @@ Live plan, apply, deployment, private repositories and live provider tests are o
 - [x] T5 `action.yml`, `.github/workflows/`, and `README.md` wire local checks, fixtures and the release gate. Run `tests/release.sh` and `actionlint`. Observe the composite on a public runner when authorized (AC-03, AC-05).
       Evidence: actionlint, release gate fixtures, setup-action.sh outputs, and direct action fixture comparison passed locally. Hosted composite execution remains pending.
 
-- [ ] T6 `scripts/check.sh`, `examples/native-hook/`, and their fixtures enforce a committed lockfile and the selected engine's native source types. Run the two engine checks, both hook cases, and the staged-only lock refusal (AC-01, AC-02, AC-04).
+- [x] T6 `scripts/check.sh`, `examples/native-hook/`, and their fixtures enforce a committed lockfile and the selected engine's native source types. Run the two engine checks, both hook cases, and the staged-only lock refusal (AC-01, AC-02, AC-04).
+
+      Evidence: Each regression failed before the fix. Both engine suites, both hooks, OpenTofu-only HCL/JSON with source precedence, the release guard and actionlint passed after the fix.
 
 ## Open Questions
 
