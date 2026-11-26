@@ -1,0 +1,67 @@
+name: Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: action-release
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  test:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/test.yml
+
+  gate:
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.ref.outputs.mode }}
+      tag: ${{ steps.ref.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: ref
+        env:
+          RELEASE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RELEASE_TEST_RESULT: ${{ needs.test.result }}
+        run: scripts/release-mode.sh >> "$GITHUB_OUTPUT"
+
+  version:
+    needs: gate
+    if: needs.gate.outputs.mode == 'version'
+    permissions:
+      contents: write
+    uses: vhco-pro/gh-release-workflow/.github/workflows/gh-release.yml@b18de6d2f305f971afe01ba31e17bde5966b1567 # v0.1.1
+    with:
+      runs-on: ubuntu-24.04
+
+  recover:
+    needs: gate
+    if: needs.gate.outputs.mode == 'recover'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: vhco-pro/gh-release-action@5bb1cd41296b2bb15ec62c57a674460cef547d1a # v0.1.1
+        with:
+          tag: ${{ needs.gate.outputs.tag }}

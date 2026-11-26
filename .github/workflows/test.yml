@@ -1,0 +1,105 @@
+name: Test
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [feat/terraform-ci-action]
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  workflows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+      - name: Check shell scripts
+        uses: docker://koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
+        with:
+          args: >-
+            --severity=warning
+            scripts/check.sh
+            scripts/release-mode.sh
+            scripts/setup-action.sh
+            scripts/setup.sh
+            tests/check.sh
+            tests/compare-action.sh
+            tests/hook.sh
+            tests/opentofu-files.sh
+            tests/release.sh
+            tests/setup.sh
+            examples/native-hook/.githooks/pre-commit
+      - run: tests/release.sh
+
+  fixtures:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: terraform
+          - engine: tofu
+          - engine: tofu
+            version: '1.13.9'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: pin
+        env:
+          ENGINE: ${{ matrix.engine }}
+          ENGINE_VERSION: ${{ matrix.version }}
+        run: printf 'version=%s\n' "$(scripts/setup.sh pin "$ENGINE" "$ENGINE_VERSION" | cut -f1)" >> "$GITHUB_OUTPUT"
+      - id: pass
+        uses: ./
+        with:
+          engine: ${{ matrix.engine }}
+          engine-version: ${{ steps.pin.outputs.version }}
+          root-kind: module
+          working-directory: tests/fixtures/pass
+      - id: fail
+        continue-on-error: true
+        uses: ./
+        with:
+          engine: ${{ matrix.engine }}
+          engine-version: ${{ steps.pin.outputs.version }}
+          root-kind: module
+          working-directory: tests/fixtures/fail
+      - name: Compare action and local verdicts
+        env:
+          TERRAFORM_CI_ENGINE: ${{ matrix.engine }}
+          TERRAFORM_CI_ENGINE_VERSION: ${{ steps.pin.outputs.version }}
+          TERRAFORM_CI_ROOT_KIND: module
+          COMPOSITE_FAILURE: ${{ steps.fail.outcome }}
+          ACTION_ENGINE_VERSION: ${{ steps.pass.outputs.engine-version }}
+          ACTION_TFLINT_VERSION: ${{ steps.pass.outputs.tflint-version }}
+          ACTION_TRIVY_VERSION: ${{ steps.pass.outputs.trivy-version }}
+        run: tests/compare-action.sh
+      - name: Run native fixtures
+        env:
+          ENGINE: ${{ matrix.engine }}
+          TERRAFORM_CI_ENGINE_VERSION: ${{ steps.pin.outputs.version }}
+        run: tests/check.sh "$ENGINE"
+      - name: Check staged formatter
+        env:
+          ENGINE: ${{ matrix.engine }}
+          TERRAFORM_CI_ENGINE_VERSION: ${{ steps.pin.outputs.version }}
+        run: tests/hook.sh "$ENGINE"
+      - if: matrix.engine == 'tofu'
+        env:
+          TERRAFORM_CI_ENGINE_VERSION: ${{ steps.pin.outputs.version }}
+        run: tests/opentofu-files.sh
+      - if: matrix.engine == 'terraform'
+        run: tests/setup.sh

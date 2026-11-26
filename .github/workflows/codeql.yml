@@ -1,0 +1,24 @@
+name: CodeQL
+on:
+  push:
+    branches: [main, feat/terraform-ci-action]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 5 * * 2'
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  actions:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    uses: vhco-pro/.github/.github/workflows/reusable-codeql-actions.yml@119c3c5c884b2b9a6529e741b239eac288942262 # v1.2.5
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
