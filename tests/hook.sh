@@ -30,18 +30,21 @@ test "$index" = "$(git write-tree)"
 test "$worktree" = "$(sha256sum "$file")"
 
 if [[ $engine == terraform ]]; then
+  git checkout-index -f -- "$file"
   for extension in tfmock.hcl tfquery.hcl; do
     staged="example.$extension"
     printf 'fixture="synthetic"\n' > "$staged"
     git add -- "$staged"
-    if "$engine" fmt -check -recursive >/dev/null; then
+    if "$engine" fmt -check -recursive > "$scratch/native.log"; then
       printf 'Native fmt did not check %s.\n' "$staged" >&2
       exit 1
     fi
-    if TERRAFORM_CI_CHECK="$repo/scripts/check.sh" TERRAFORM_CI_ENGINE="$engine" "$hook"; then
+    grep -Fx -- "$staged" "$scratch/native.log"
+    if TERRAFORM_CI_CHECK="$repo/scripts/check.sh" TERRAFORM_CI_ENGINE="$engine" "$hook" > "$scratch/hook.log" 2>&1; then
       printf 'Staged bad formatting passed for %s.\n' "$staged" >&2
       exit 1
     fi
+    grep -Fx -- "$staged" "$scratch/hook.log"
     git rm -q -f -- "$staged"
   done
 fi
