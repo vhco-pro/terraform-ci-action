@@ -1,0 +1,81 @@
+---
+status: draft
+status_description: "Owner-approved design captured for independent specification review."
+issue: null
+goal: "Consumers can run the same read-only Terraform or OpenTofu checks locally and in GitHub Actions."
+covers:
+  - action.yml
+  - scripts/
+  - tests/
+  - examples/
+  - .github/workflows/
+  - README.md
+  - LICENSE
+---
+
+# Terraform and OpenTofu CI action
+
+## Context
+
+### Owner summary
+
+One action checks an explicitly chosen Terraform or OpenTofu root on Linux x64. The same check script runs with matching local tools. The quick Git hook uses the staged snapshot and leaves provider installation and policy scanning to full verification. Module behavior tests remain caller-owned.
+
+Trivy is the initial policy scanner, with scope proved by a synthetic positive and negative pair. A new provider needs evidence for the controls the consumer relies on. The implementation uses a separate feature branch. Release and consumer rollout need separate approval.
+
+### Background
+
+The shared convention at [4635f7e](https://github.com/vhco-pro/docs/blob/4635f7e12f7a8d9b24046ef943bc382b0d74dff1/conventions/terraform-ansible.md) calls for one set of native commands across local checks and hosted CI. Duplicating workflows would duplicate tool pins and make verdicts drift. A local probe on Linux x64 observed successful backend-free validation and an undeclared-local refusal with Terraform 1.17.2 and OpenTofu 1.13.9. An isolated Trivy 0.70.0 probe passed private SSH ingress and blocked public SSH ingress in a synthetic AWS security group. Those runs establish fixture behavior on the installed tools. They precede verification of the action and installer pins.
+
+## Scope
+
+Deliver one composite, its portable check entry point, native Git hook example, public fixtures and release workflow. Support Ubuntu 24.04 x64 in GitHub Actions and Linux x64 locally. Check both engines on supported pins. Callers choose affected directories and own provider selection and optional plan-only module tests.
+
+Live plan, apply, deployment, private repositories and live provider tests are outside this feature. A consumer that needs an integration test owns its target and approval.
+
+## Design
+
+- Inputs are `working-directory` (default `.`), `engine` (`terraform` or `tofu`, required), `engine-version` (exact verified release, required), `root-kind` (`deployable` by default, or `module`), and optional `tflint-config` (bundled recommended rules if empty). Reject absent required inputs, unsupported pin or platform, empty check scope, and paths resolving outside the checkout. Pass values through environment variables.
+- Format with the selected engine, initialize with `-backend=false -input=false`, and validate. Deployable roots explicitly require a committed lockfile and use `-lockfile=readonly`. A module check initializes in temporary storage without leaving generated files in the caller's checkout. Copy the relevant tree when needed to preserve relative module references. Fail if a selected check cannot run.
+- Install the exact OpenTofu and TFLint binaries via vendor setup actions with verified checksums, or equivalent local verified downloads. Use a verified HashiCorp archive for Terraform and a verified Aqua archive for Trivy. Keep archive pins in updater-readable configuration and version outputs in `GITHUB_OUTPUT`. Return `engine-version`, `tflint-version` and `trivy-version`. Use caller-pinned provider lint plugins where configured.
+- Run the Trivy Terraform source scanner with embedded checks and isolated cache. Block findings using the scanner exit code. Prove a known rule fails on the intended synthetic resource and the corrected version passes. Require consumers to map additional provider controls to tested rule IDs before claiming coverage. Keep exceptions control- and resource-specific with a reason and review date.
+- Document raw commands in the README. Ship a native hook example for staged formatting, with engine selection supplied by the caller. The hook consumes index content and avoids dependency downloads. The full command and action share the shell check script. Document native mocked plan tests as caller-owned behavior checks.
+- A read-only callable fixture workflow runs on Ubuntu 24.04 with checks for both engines, setup failures and output parity. SHA-pin external actions with release comments. Gate the exact-tag GitVersion release on successful tests through the existing shared release workflow. Keep checks and publication in separate jobs. Publication retries at the same version never replace a released artifact.
+
+## Acceptance Criteria
+
+- [ ] AC-01: A Linux x64 caller can check a Terraform or OpenTofu root with its selected engine and receive a blocking exit status for malformed or unformatted input, missing required dependencies, or a deployable lockfile failure.
+- [ ] AC-02: The check blocks the documented TFLint and Trivy violations and accepts their corrected fixtures.
+- [ ] AC-03: The composite reports actual installed tool versions and rejects invalid inputs, escaping paths, missing pins and incorrect artifact checksums.
+- [ ] AC-04: The documented direct command and native hook share the check behavior. The hook inspects staged content and leaves source and index intact.
+- [ ] AC-05: The repository contains passing and expected-failing public fixture cases, lintable workflows and a release path that requires successful fixtures before tagging.
+
+## Test Plan
+
+| Criterion | Proof |
+| --- | --- |
+| AC-01 | Run `tests/check.sh` with both pinned engines using clean, unformatted, undeclared reference and lockfile fixtures. Assert the failing stage. Compare tracked inputs before and after. |
+| AC-02 | Run `tests/check.sh` on paired lint and scanner fixtures. Assert the TFLint diagnostic ID for the selected rule and the Trivy finding ID and source location for the unrestricted ingress fixture. The corrected fixtures exit zero. |
+| AC-03 | Run `tests/setup.sh` for the right and wrong digest and `tests/check.sh` for omitted engine, empty scope and an out-of-checkout path. The callable workflow compares each version output with the installed CLI. |
+| AC-04 | Run `tests/hook.sh` in a disposable Git repository with differing index and worktree contents. The staged violation must block; an unstaged violation with clean index must allow. Compare the index and source before and after. |
+| AC-05 | Lint workflows and examples with `actionlint`. Inspect the tested release gate and run the checked-in public fixture workflow when a feature push is approved. Record hosted evidence separately from local tests. |
+
+## Tasks
+
+None yet. Tasks are populated after the specification gate.
+
+## Open Questions
+
+None.
+
+## Review Log
+
+| Date | Review | Kind | Commit | Model | Isolation | Outcome |
+| --- | --- | --- | --- | --- | --- | --- |
+
+## Sources
+
+- [Terraform validate](https://developer.hashicorp.com/terraform/cli/commands/validate) and [OpenTofu validate](https://opentofu.org/docs/cli/commands/validate/) document backend-free initialization.
+- [TFLint](https://github.com/terraform-linters/tflint) documents rules and plugins. [Trivy Terraform coverage](https://trivy.dev/docs/latest/coverage/iac/terraform/) documents source policy scanning.
+- [HashiCorp Terraform style skill](https://github.com/hashicorp/agent-skills/blob/5e30fa5c867ba6777c37e4206babfd08049c396f/plugins/terraform/skills/terraform-style-guide/SKILL.md) applies to HCL. [HashiCorp Terraform test skill](https://github.com/hashicorp/agent-skills/blob/5e30fa5c867ba6777c37e4206babfd08049c396f/plugins/terraform/skills/terraform-test/SKILL.md) and [OpenTofu test](https://opentofu.org/docs/cli/commands/test/) describe plan tests and mocks.
+- [PowerShell fixture workflow](https://github.com/vhco-pro/pwsh-ci-action/blob/v0.1.1/.github/workflows/test.yml) demonstrates checking direct and composite verdicts. [GitHub release workflow](https://github.com/vhco-pro/gh-release-workflow/blob/b18de6d2f305f971afe01ba31e17bde5966b1567/.github/workflows/gh-release.yml) owns GitVersion tagging and publication.
